@@ -1,8 +1,6 @@
 import tkinter
 from tkinter import *
 from checkers.constants import *
-from Piece import CheckerPiece
-
 
 class CheckerBoard(Canvas):
     win = tkinter.Tk()
