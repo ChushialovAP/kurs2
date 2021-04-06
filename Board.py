@@ -91,13 +91,16 @@ class CheckerBoard(Canvas):
         y = int(self.canvasy(event.y) // SQUARE_SIZE)
 
         if self.board[y][x] == self.player or self.board[y][x] == 0:
-            print(self.player)
-            if self.jump and len(self.checkForMoreJumps(self.currentTile[0], self.currentTile[1], [])) == 0:
-                self.jump = False
-                self.switchPlayer()
-            elif not self.board[y][x] == 0:
-                self.currentTile = (y, x)
-                self.availableMoves = self.getValidMoves(y, x)
+            #print(self.player)
+            print(self.currentTile)
+
+            if not self.board[y][x] == 0:
+                if not self.jump:
+                    self.currentTile = (y, x)
+                    self.availableMoves = self.getValidMoves(y, x)
+                else:
+                    self.availableMoves = self.checkForMoreJumps(self.currentTile[0], self.currentTile[1], [])
+                    print(self.availableMoves)
                 self.createTiles()
                 self.render()
                 for (y, x) in self.availableMoves:
@@ -123,6 +126,9 @@ class CheckerBoard(Canvas):
                         self.currentTile = (y, x)
                         self.createTiles()
                         self.render()
+            if self.jump and len(self.checkForMoreJumps(self.currentTile[0], self.currentTile[1], [])) == 0:
+                self.jump = False
+                self.switchPlayer()
 
     def getValidMoves(self, y, x):
         validMoves = []
@@ -157,6 +163,7 @@ class CheckerBoard(Canvas):
 
     def switchPlayer(self):
         self.toDel = []
+        self.availableMoves = []
         if self.player == 1:
             self.player = 2
         else:
