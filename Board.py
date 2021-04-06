@@ -1,170 +1,116 @@
-import tkinter
 from tkinter import *
+import numpy
+import copy
+import ai
 from checkers.constants import *
 
-class CheckerBoard(Canvas):
+
+class Checker:
+    def __init__(self):
+        self.alive = True
+        self.king = False
+        self.x = None
+        self.y = None
+        self.black = False
+        self.circle = None
+        self.id = None
+        self.index = None
+
+
+class Game(Canvas):
+
     win = tkinter.Tk()
-    board = [[0 for _ in range(COLS)] for _ in range(ROWS)]
-    rects = []
-    moves = [[1, 1], [1, -1], [-1, 1], [-1, -1]]
-    jumps = [[2, 2], [2, -2], [-2, 2], [-2, -2]]
-    player = 1
-    toDel = []
-    jump = False
+
     waitingMove = False
+    currentChecker = None
+    color = True
+
+    board = numpy.empty((8, 8), dtype=Checker)
     availableMoves = []
-    currentTile = None
+    checkers = []
 
     def __init__(self):
         self.win.minsize(HEIGHT, WIDTH)
         Canvas.__init__(self, self.win, bg="white", height=HEIGHT, width=WIDTH)
         self.pack()
-        self.createTiles()
-        self.createBoard()
-
         self.bind("<Button-1>", self.getUserClick)
-        self.render()
-        print(self.board)
+
+        self.initBoard()
+        self.drawBoard()
+        self.drawCheckers()
+
         self.win.mainloop()
 
-    def createBoard(self):
-        for i in range(0, ROWS):
-            num = 0
-            if i == 3 or i == 4:
-                continue
-            if i < 3:
-                num = 1
-            elif i > 4:
-                num = 2
-            for j in range(0, COLS):
-                if ((i + j) % 2 == 1):
-                    if num == 1:
-                        self.board[i][j] = 1
-                    elif num == 2:
-                        self.board[i][j] = 2
+    def initBoard(self):
+        for x in range(0, 8):
+            piece_offset = True if x % 2 else False
+            for y in range(0, 8):
+                if (x % 2 == 0 or y % 2 == 0) and piece_offset:
+                    self.addChecker(x, y)
+                elif (x % 2 == 1 or y % 2 == 1) and not piece_offset:
+                    self.addChecker(x, y)
 
-    def render(self):
+    def addChecker(self, x, y):
+        if y == 3 or y == 4:
+            return
+        checker = Checker()
+        checker.id = (x, y)
+        checker.index = x * 8 + (y + 1)
+        if y < 4:
+            checker.black = True
+        checker.x = x
+        checker.y = y
+        self.board[x, y] = checker
+        self.checkers.append(checker)
+
+    def drawBoard(self):
+        for x in range(0, 8):
+            color_offset = True if x % 2 else False
+            for y in range(0, 8):
+                color = FIRST_TILE_COLOR
+                if x % 2 != color_offset or y % 2 != color_offset:
+                    color = SECOND_TILE_COLOR
+                self.create_rectangle(x * SQUARE_SIZE, y * SQUARE_SIZE,
+                                      x * SQUARE_SIZE + SQUARE_SIZE, y * SQUARE_SIZE + SQUARE_SIZE,
+                                      fill=color)
+
+    def drawCheckers(self):
         radius = SQUARE_SIZE // 3
-
-        checkerColor = ""
         checkerOutline = OUTLINE_COLOR
 
-        for i in range(0, ROWS):
-            y = SQUARE_SIZE * i + SQUARE_SIZE // 2
-            for j in range(0, COLS):
-                if self.board[i][j] == 0:
-                    continue
-
-                if self.board[i][j] == 1:
+        for checker in self.board.flat:
+            if checker is not None:
+                if checker.black:
                     checkerColor = FIRST_COLOR
                 else:
                     checkerColor = SECOND_COLOR
-
-                x = SQUARE_SIZE * j + SQUARE_SIZE // 2
-                self.create_oval(x - radius, y - radius, x + radius, y + radius, width=4, fill=checkerColor,
-                                 outline=checkerOutline)
-
-    def createTiles(self):
-        self.rects = []
-        width = SQUARE_SIZE
-        height = SQUARE_SIZE
-        c = None
-        for i in range(0, COLS):
-            self.rects.append([])
-            x1 = (i * width) + BORDER
-            x2 = ((i + 1) * width) - BORDER
-            self.create_line(x1, 0, x1, WIDTH, fill=OUTLINE_COLOR, width=3)
-            for j in range(0, ROWS):
-                y1 = (j * height) + BORDER
-                y2 = ((j + 1) * height) - BORDER
-                self.create_line(0, y1, HEIGHT, y1, fill=OUTLINE_COLOR, width=3)
-                if (i + j) % 2 == 0:
-                    c = self.create_rectangle(x1, y1, x2, y2, fill=FIRST_TILE_COLOR)
-                else:
-                    c = self.create_rectangle(x1, y1, x2, y2, fill=SECOND_TILE_COLOR)
-                self.rects[i].append(c)
+                self.create_oval(checker.x * SQUARE_SIZE + SQUARE_SIZE / 2 - radius,
+                                 checker.y * SQUARE_SIZE + SQUARE_SIZE / 2 - radius,
+                                 checker.x * SQUARE_SIZE + SQUARE_SIZE / 2 + radius,
+                                 checker.y * SQUARE_SIZE + SQUARE_SIZE / 2 + radius,
+                                 width=4, fill=checkerColor, outline=checkerOutline)
 
     def getUserClick(self, event):
         x = int(self.canvasx(event.x) // SQUARE_SIZE)
         y = int(self.canvasy(event.y) // SQUARE_SIZE)
-        print(self.board[y][x])
 
-        if self.board[y][x] == self.player or self.board[y][x] == 0:
-            if not self.board[y][x] == 0 and not self.jump:
-                self.currentTile = (y, x)
-                self.availableMoves = self.getValidMoves(y, x)
-                self.createTiles()
-                self.render()
-                for (y, x) in self.availableMoves:
-                    if self.isValidRow(y) and self.isValidCol(x):
-                        self.itemconfig(self.rects[x][y], fill=HIGHLIGHTED_COLOR)
-            else:
-                if (y, x) in self.availableMoves:
-                    if abs(y - self.currentTile[0]) == 1:
-                        self.board[y][x] = 1 if self.player == 1 else 2
-                        self.board[self.currentTile[0]][self.currentTile[1]] = 0
-                        self.createTiles()
-                        self.render()
-                        self.availableMoves = []
-                        self.currentTile = []
-                        self.switchPlayer()
-                    else:
-                        self.jump = True
-                        self.toDel.append(self.currentTile)
-                        self.availableMoves = self.checkForMoreJumps(y, x, [])
-                        for (y, x) in self.availableMoves:
-                            if self.isValidRow(y) and self.isValidCol(x):
-                                self.itemconfig(self.rects[x][y], fill=HIGHLIGHTED_COLOR)
-                        self.board[y][x] = 1 if self.player == 1 else 2
-                        self.board[self.currentTile[0]][self.currentTile[1]] = 0
-                        self.currentTile = (y, x)
-                        self.createTiles()
-                        self.render()
-                        print(self.availableMoves)
+        checker = self.board[x][y]
+        if self.waitingMove:
+            if checker is not None:
+                return
+            partial_move = ai.Move(self.currentChecker, (x, y), "?")
+            self.getFullMove(partial_move)
 
-    def getValidMoves(self, y, x):
-        validMoves = []
-        if self.player == 1:
-            for move in self.moves[:2]:
-                if self.isValidRow(y + move[0]) and self.isValidCol(x + move[1]):
-                    if self.board[y + move[0]][x + move[1]] == 0:
-                        validMoves.append((y + move[0], x + move[1]))
-        else:
-            for move in self.moves[2:]:
-                if self.isValidRow(y + move[0]) and self.isValidCol(x + move[1]):
-                    if self.board[y + move[0]][x + move[1]] == 0:
-                        validMoves.append((y + move[0], x + move[1]))
+        elif checker is not None and checker.black == self.color:
+            self.currentChecker = checker
+            self.waitingMove = True
 
-        # validMoves.append((-1, -1))
-        validMoves = self.checkForMoreJumps(y, x, validMoves)
-        print(validMoves)
-        return validMoves
-
-    def checkForMoreJumps(self, y, x, validMoves):
-        for move in self.moves:
-            if self.isValidRow(y + move[0]) and self.isValidCol(x + move[1]):
-                if self.board[y + move[0]][x + move[1]] != self.player and self.board[y + move[0]][x + move[1]] != 0:
-                    if self.isValidRow(y + 2 * move[0]) and self.isValidCol(x + 2 * move[1]):
-                        if self.board[y + 2 * move[0]][x + 2 * move[1]] == 0 and (
-                                y + 2 * move[0], x + 2 * move[1]) not in validMoves:
-                            if (y + 2 * move[0], x + 2 * move[1]) not in self.toDel:
-                                validMoves.append((y + 2 * move[0], x + 2 * move[1]))
-                            #self.checkForMoreJumps(y + 2 * move[0], x + 2 * move[1], validMoves)
-                            # validMoves.append((-1, -1))
-        return validMoves
-
-    def switchPlayer(self):
-        if self.player == 1:
-            self.player = 2
-        else:
-            self.player = 1
-
-    def isValidRow(self, y):
-        if 0 <= y < ROWS:
-            return True
-        return False
-
-    def isValidCol(self, x):
-        if 0 <= x < COLS:
-            return True
-        return False
+    def getFullMove(self, partial_move):
+        moves = ai.findJumps(self.board, self.color) + ai.findMoves(self.board, self.color)
+        for move in moves:
+            if move.checker.id == partial_move.checker.id and move.piece == partial_move.piece:
+                move.apply(self.board)
+                self.color = not self.color
+                self.waitingMove = False
+                self.drawBoard()
+                self.drawCheckers()

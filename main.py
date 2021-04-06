@@ -1,4 +1,4 @@
-from Board import CheckerBoard
+from Board import Game
 
 if __name__ == '__main__':
-    newCheckerBoard = CheckerBoard()
+    newCheckerBoard = Game()
