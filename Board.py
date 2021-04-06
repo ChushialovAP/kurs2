@@ -63,7 +63,7 @@ class Game(Canvas):
         self.board[x, y] = checker
         self.checkers.append(checker)
 
-    def drawBoard(self):
+    def drawBoard(self, moves=[]):
         for x in range(0, 8):
             color_offset = True if x % 2 else False
             for y in range(0, 8):
@@ -73,6 +73,10 @@ class Game(Canvas):
                 self.create_rectangle(x * SQUARE_SIZE, y * SQUARE_SIZE,
                                       x * SQUARE_SIZE + SQUARE_SIZE, y * SQUARE_SIZE + SQUARE_SIZE,
                                       fill=color)
+        for move in moves:
+            self.create_rectangle(move[0] * SQUARE_SIZE, move[1] * SQUARE_SIZE,
+                                  move[0] * SQUARE_SIZE + SQUARE_SIZE, move[1] * SQUARE_SIZE + SQUARE_SIZE,
+                                  fill=HIGHLIGHTED_COLOR)
 
     def drawCheckers(self):
         radius = SQUARE_SIZE // 3
@@ -102,8 +106,19 @@ class Game(Canvas):
             self.getFullMove(partial_move)
 
         elif checker is not None and checker.black == self.color:
+            self.showMoves(checker)
             self.currentChecker = checker
             self.waitingMove = True
+
+    def showMoves(self, checker):
+        ai.Move(self.currentChecker, (0, 0), "?")
+        moves = ai.findJumps(self.board, self.color) + ai.findMoves(self.board, self.color)
+        valid_moves = []
+        for move in moves:
+            if move.checker.id == checker.id:
+                valid_moves.append(move.piece)
+        self.drawBoard(valid_moves)
+        self.drawCheckers()
 
     def getFullMove(self, partial_move):
         moves = ai.findJumps(self.board, self.color) + ai.findMoves(self.board, self.color)
