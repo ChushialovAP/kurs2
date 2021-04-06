@@ -89,10 +89,13 @@ class CheckerBoard(Canvas):
     def getUserClick(self, event):
         x = int(self.canvasx(event.x) // SQUARE_SIZE)
         y = int(self.canvasy(event.y) // SQUARE_SIZE)
-        print(self.board[y][x])
 
         if self.board[y][x] == self.player or self.board[y][x] == 0:
-            if not self.board[y][x] == 0 and not self.jump:
+            print(self.player)
+            if self.jump and len(self.checkForMoreJumps(self.currentTile[0], self.currentTile[1], [])) == 0:
+                self.jump = False
+                self.switchPlayer()
+            elif not self.board[y][x] == 0:
                 self.currentTile = (y, x)
                 self.availableMoves = self.getValidMoves(y, x)
                 self.createTiles()
@@ -114,15 +117,12 @@ class CheckerBoard(Canvas):
                         self.jump = True
                         self.toDel.append(self.currentTile)
                         self.availableMoves = self.checkForMoreJumps(y, x, [])
-                        for (y, x) in self.availableMoves:
-                            if self.isValidRow(y) and self.isValidCol(x):
-                                self.itemconfig(self.rects[x][y], fill=HIGHLIGHTED_COLOR)
                         self.board[y][x] = 1 if self.player == 1 else 2
                         self.board[self.currentTile[0]][self.currentTile[1]] = 0
+                        self.board[(y + self.currentTile[0]) // 2][(x + self.currentTile[1]) // 2] = 0
                         self.currentTile = (y, x)
                         self.createTiles()
                         self.render()
-                        print(self.availableMoves)
 
     def getValidMoves(self, y, x):
         validMoves = []
@@ -156,6 +156,7 @@ class CheckerBoard(Canvas):
         return validMoves
 
     def switchPlayer(self):
+        self.toDel = []
         if self.player == 1:
             self.player = 2
         else:
