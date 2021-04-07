@@ -67,13 +67,18 @@ def getJumps(board, y, x, king=False):
         for move in moves:
             for mult in range(2, 6):
                 if isValidRow(y + move[1] * mult) and isValidCol(x + move[0] * mult):
-                    if board[y + move[1] * mult][x + move[0] * mult] is None:
-                        if board[y + move[1] * (mult - 1)][x + move[0] * (mult - 1)] is not None:
+                    if board[y + move[1] * (mult - 1)][x + move[0] * (mult - 1)] is not None:
+                        if board[y + move[1] * mult][x + move[0] * mult] is None:
                             if board[y + move[1] * (mult - 1)][x + move[0] * (mult - 1)].black != board[y][x].black:
                                 validMoves.append((y + move[1] * mult, x + move[0] * mult))
                                 jumped.append((y + move[1] * (mult - 1), x + move[0] * (mult - 1)))
-                    else:
-                        break
+                                break
+                            else:
+                                break
+                        else:
+                            break
+                else:
+                    break
     else:
         for jump, move in zip(jumps, moves):
             if isValidRow(y + move[1]) and isValidCol(x + move[0]):
