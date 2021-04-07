@@ -8,7 +8,7 @@ from checkers.constants import *
 class Checker:
     def __init__(self):
         self.alive = True
-        self.king = False
+        self.king = True
         self.x = None
         self.y = None
         self.black = False
@@ -78,6 +78,13 @@ class Game(Canvas):
                                   move[0] * SQUARE_SIZE + SQUARE_SIZE, move[1] * SQUARE_SIZE + SQUARE_SIZE,
                                   fill=HIGHLIGHTED_COLOR)
 
+    def King(self):
+        for checker in self.board.flat:
+            if checker is None or checker.king:
+                continue
+            if (checker.y == 7 and checker.black) or (checker.y== 0 and not checker.black):
+                checker.king = True
+
     def drawCheckers(self):
         radius = SQUARE_SIZE // 3
         checkerOutline = OUTLINE_COLOR
@@ -104,6 +111,7 @@ class Game(Canvas):
                 return
             partial_move = ai.Move(self.currentChecker, (x, y), "?")
             self.getFullMove(partial_move)
+            self.waitingMove = False
 
         elif checker is not None and checker.black == self.color:
             self.showMoves(checker)
@@ -126,6 +134,6 @@ class Game(Canvas):
             if move.checker.id == partial_move.checker.id and move.piece == partial_move.piece:
                 move.apply(self.board)
                 self.color = not self.color
-                self.waitingMove = False
                 self.drawBoard()
                 self.drawCheckers()
+        self.King()

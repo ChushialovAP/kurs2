@@ -36,32 +36,53 @@ class Move:
         return board
 
 
-def getNeighbor(board, y, x, up=False, down=False):
+def getNeighbor(board, y, x, color, king=False):
     validMoves = []
-    if not up:
+    if king:
+        for move in moves:
+            for mult in range(1, 7):
+                if isValidRow(y + move[1] * mult) and isValidCol(x + move[0] * mult):
+                    if board[y + move[1] * mult][x + move[0] * mult] is None:
+                        validMoves.append((y + move[1] * mult, x + move[0] * mult))
+                    else:
+                        break
+    elif color:
         for move in moves[:2]:
             if isValidRow(y + move[1]) and isValidCol(x + move[0]):
                 if board[y + move[1]][x + move[0]] is None:
                     validMoves.append((y + move[1], x + move[0]))
-    elif not down:
+    else:
         for move in moves[2:]:
             if isValidRow(y + move[1]) and isValidCol(x + move[0]):
                 if board[y + move[1]][x + move[0]] is None:
                     validMoves.append((y + move[1], x + move[0]))
+
     return validMoves
 
 
-def getJumps(board, y, x, color):
+def getJumps(board, y, x, king=False):
     validMoves = []
     jumped = []
-    for jump, move in zip(jumps, moves):
-        if isValidRow(y + move[1]) and isValidCol(x + move[0]):
-            if isValidRow(y + jump[1]) and isValidCol(x + jump[0]):
-                if board[y + move[1]][x + move[0]] is not None:
-                    if board[y + move[1]][x + move[0]].black != color:
-                        if board[y + jump[1]][x + jump[0]] is None:
-                            validMoves.append((y + jump[1], x + jump[0]))
-                            jumped.append((y + move[1], x + move[0]))
+    if king:
+        for move in moves:
+            for mult in range(2, 6):
+                if isValidRow(y + move[1] * mult) and isValidCol(x + move[0] * mult):
+                    if board[y + move[1] * mult][x + move[0] * mult] is None:
+                        if board[y + move[1] * (mult - 1)][x + move[0] * (mult - 1)] is not None:
+                            if board[y + move[1] * (mult - 1)][x + move[0] * (mult - 1)].black != board[y][x].black:
+                                validMoves.append((y + move[1] * mult, x + move[0] * mult))
+                                jumped.append((y + move[1] * (mult - 1), x + move[0] * (mult - 1)))
+                    else:
+                        break
+    else:
+        for jump, move in zip(jumps, moves):
+            if isValidRow(y + move[1]) and isValidCol(x + move[0]):
+                if isValidRow(y + jump[1]) and isValidCol(x + jump[0]):
+                    if board[y + move[1]][x + move[0]] is not None:
+                        if board[y + move[1]][x + move[0]].black != board[y][x].black:
+                            if board[y + jump[1]][x + jump[0]] is None:
+                                validMoves.append((y + jump[1], x + jump[0]))
+                                jumped.append((y + move[1], x + move[0]))
     return validMoves, jumped
 
 
@@ -70,12 +91,7 @@ def findMoves(board, color):
     for checker in board.flat:
         if checker is None or checker.black != color:
             continue
-        if checker.king:
-            options = getNeighbor(board, checker.x, checker.y)
-        elif color:
-            options = getNeighbor(board, checker.x, checker.y, down=True)
-        elif not color:
-            options = getNeighbor(board, checker.x, checker.y, up=True)
+        options = getNeighbor(board, checker.x, checker.y, checker.black, checker.king)
 
         for option in options:
             moves.append(Move(checker, (option[0], option[1]), "Move"))
@@ -92,7 +108,7 @@ def findJumps(board, color, old=None, depth=0):
     for checker in board.flat:
         if checker is None or checker.black != color:
             continue
-        options, jumped = getJumps(board, checker.x, checker.y, checker.black)
+        options, jumped = getJumps(board, checker.x, checker.y, checker.king)
 
         for option, jump in zip(options, jumped):
             move = Move(checker, (option[0], option[1]), "Jump")
