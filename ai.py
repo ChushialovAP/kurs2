@@ -54,6 +54,9 @@ def minimax(depth, color, board, a, b):
         for move in white_moves:
             copy = copyBoard(board)
             val = minimax(depth + 1, False, move.apply(copy), a, b)
+            if val is None:
+                val = move
+                val.weight = 0
             if best_move is None or val.weight < best_move.weight:
                 best_move = move
                 best_move.weight = val.weight
@@ -65,6 +68,9 @@ def minimax(depth, color, board, a, b):
         for move in black_moves:
             copy = copyBoard(board)
             val = minimax(depth + 1, True, move.apply(copy), a, b)
+            if val is None:
+                val = move
+                val.weight = 0
             if best_move is None or val.weight > best_move.weight:
                 best_move = move
                 best_move.weight = val.weight

@@ -37,8 +37,17 @@ class Game(Canvas):
         self.initBoard()
         self.drawBoard()
         self.drawCheckers()
+        while 1:
+            ai.runAI(self.board, self.color)
+            self.King()
 
-        self.win.mainloop()
+            self.color = not self.color
+
+            self.drawBoard()
+            self.drawCheckers()
+            self.win.update_idletasks()
+            self.win.update()
+        #self.win.mainloop()
 
     def initBoard(self):
         for x in range(0, 8):
