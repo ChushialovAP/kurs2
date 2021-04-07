@@ -1,14 +1,13 @@
 from tkinter import *
 import numpy
-import copy
 import ai
-from checkers.constants import *
+from constants import *
 
 
 class Checker:
     def __init__(self):
         self.alive = True
-        self.king = True
+        self.king = False
         self.x = None
         self.y = None
         self.black = False
@@ -133,7 +132,15 @@ class Game(Canvas):
         for move in moves:
             if move.checker.id == partial_move.checker.id and move.piece == partial_move.piece:
                 move.apply(self.board)
+                self.King()
+
                 self.color = not self.color
                 self.drawBoard()
                 self.drawCheckers()
-        self.King()
+
+                ai.runAI(self.board, self.color)
+                self.King()
+
+                self.color = not self.color
+                self.drawBoard()
+                self.drawCheckers()

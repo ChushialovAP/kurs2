@@ -1,4 +1,5 @@
-from checkers.constants import *
+from constants import *
+import time
 from copy import deepcopy
 
 moves = [[1, 1], [1, -1], [-1, 1], [-1, -1]]
@@ -34,6 +35,61 @@ class Move:
         for jump in self.jumped:
             board[jump[0], jump[1]] = None
         return board
+
+
+def runAI(board, color):
+    t1 = time.time()
+    ai_move = minimax(0, color, board, float('-inf'), float('+inf'))
+    print("calculated in: " + str(time.time() - t1))
+    ai_move.apply(board)
+
+
+def minimax(depth, color, board, a, b):
+    if depth == MAX_DEPTH:
+        return evaluateBoard(board, color)
+
+    best_move = None
+    if color:
+        white_moves = findJumps(board, True) + findMoves(board, True)
+        for move in white_moves:
+            copy = copyBoard(board)
+            val = minimax(depth + 1, False, move.apply(copy), a, b)
+            if best_move is None or val.weight < best_move.weight:
+                best_move = move
+                best_move.weight = val.weight
+            b = min(b, best_move.weight)
+            if b <= a:
+                break
+    else:
+        black_moves = findMoves(board, False) + findJumps(board, False)
+        for move in black_moves:
+            copy = copyBoard(board)
+            val = minimax(depth + 1, True, move.apply(copy), a, b)
+            if best_move is None or val.weight > best_move.weight:
+                best_move = move
+                best_move.weight = val.weight
+            a = max(a, best_move.weight)
+            if b <= a:
+                break
+    return best_move
+
+
+def evaluateBoard(board, color):
+    move = Move(None, (0, 0), "weight")
+    white_left = black_left = white_kings = black_kings = 0
+
+    for checker in board.flat:
+        if checker is not None:
+            if checker.black:
+                black_left = black_left + 1
+                if checker.king:
+                    black_kings = black_kings + 1
+            else:
+                white_left = white_left + 1
+                if checker.king:
+                    white_kings = white_kings + 1
+    move.weight = white_left - black_left + (white_kings * 0.5 - black_kings * 0.5)
+    return move
 
 
 def getNeighbor(board, y, x, color, king=False):
